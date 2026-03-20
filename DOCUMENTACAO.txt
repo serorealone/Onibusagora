@@ -1,0 +1,71 @@
+DOCUMENTAÇÃO: ÔnibusAgora
+
+1. Visão Geral
+O objetivo é criar uma aplicação web fullstack focada no rastreamento colaborativo de ônibus em tempo real. O foco principal é resolver a imprevisibilidade do transporte público através de crowdsourcing (colaboração coletiva), permitindo que os passageiros a bordo compartilhem sua localização em tempo real para o sistema calcular previsões de chegada (ETA) precisas para outros usuários nos abrigos e pontos.
+
+2. Arquitetura e Stack Tecnológica
+Frontend (Hospedagem: Netlify)
+Framework: React.js construído via Vite (pela velocidade de build e integração contínua).
+Estilização: Tailwind CSS (para uma UI responsiva e mobile-first).
+Mapas e Interatividade: React-Leaflet consumindo tilesheets do OpenStreetMap.
+Ícones: Lucide React.
+Gerenciamento de Estado: React Hooks nativos (useState e useEffect).
+
+Backend (Hospedagem: Render)
+Linguagem: Node.js com Express.
+Autenticação: Supabase Auth (pronto para expansão de perfis no futuro).
+Integrações: Geolocation API do HTML5 nativa dos navegadores.
+Algoritmo: Sistema interno matemático usando a Fórmula de Haversine (para cálculos de distâncias esféricas).
+
+Banco de Dados (Hospedagem: Supabase)
+Tipo: PostgreSQL.
+Real-time: Alimentado através de requisições HTTP REST, arquiteturado estruturalmente para aderir aos WebSockets do Supabase se o tráfego escalar.
+
+3. Modelagem de Dados (Banco de Dados)
+
+Tabela: bus_lines (Linhas de Ônibus)
+id: uuid (PK)
+line_number: string (ex: '8000-10' ou '302')
+name: string (ex: 'Terminal Lapa - Praça Ramos')
+created_at: timestamp
+
+Tabela: stops (Pontos/Abrigos de Ônibus)
+id: uuid (PK)
+name: string (ex: 'Ponto Praça da República')
+latitude: double precision (float)
+longitude: double precision (float)
+created_at: timestamp
+
+Tabela: reports (Tracking/Reporte de Passageiros)
+id: uuid (PK)
+user_id: text (Gerado ou vinculado ao Auth)
+line_id: uuid (FK - referenciando a tabela bus_lines)
+stop_id: uuid (FK - Opcional, último ponto alcançado)
+latitude: double precision (float)
+longitude: double precision (float)
+timestamp: timestamp (hora em que as coordenadas foram capturadas)
+
+4. Funcionalidades Detalhadas
+
+4.1. Visualização e Mapa Interativo (Home Dashboard)
+O usuário ao entrar pode identificar de imediato através de marcadores todos os pontos catalogados. O mapa centraliza automaticamente na região do usuário se permitido.
+Ao clicar sobre qualquer parada, uma barra vertical exibe dinamicamente todas as medições ativas para aquele ponto.
+
+4.2. Sistema Colaborativo de Reportes (Crowdsourcing)
+Fluxo de Tracking:
+O passageiro dentro do ônibus acessa o botão principal "Reportar Ônibus".
+Escolhe a linha/frota da qual faz parte em um dropdown simplificado.
+O cliente web obtém as coordenadas cruas do hardware (Celular/GPS) e injeta no Backend.
+Como confirmação visual e de UX, a tela fornece sucesso e encorajamento no rastreio colaborativo.
+
+4.3. Motor de Previsão de Chegada (ETA Algorítmico)
+Cálculo e Serviço Interno:
+Ao invés de depender de hardware governamental, o backend cruza os relatórios (reports) de até segundos atrás, referenciados pelas linhas vinculadas ao ponto selecionado.
+Indicadores Matemáticos: Usando a Fórmula de Haversine, ele converte a distância linear da Terra do 'reporte em movimento' e o 'local de parada fixa' em um número (Kilômetros). Dividindo por uma velocidade média parametrizada de vias urbanas, converte em (Minutos Reais).
+Ordenação: Exibe para os passageiros em ordem crescente de chegada para tomada rápida de decisões.
+
+4.4. Interface e Experiência do Usuário (UI/UX)
+Navegação e Estrutura:
+Mobile-First Setup: Botões volumosos clicáveis em deslocamento, priorização tátil. Sem poluição (Painel esquerdo contínuo, Painel inferior reativo no celular).
+Indicadores Visuais de Status: Status de erro customizados: "Selecione um local", "Você está aqui", feedback rotativo ("Enviando...") durante cargas assíncronas do backend.
+Design System Básico: Foco claro no uso da cor Índigo e Verde semântico para sucesso (Status Positivos). Cores claras entregam um aplicativo web digno de PWA (Progressive Web App).
