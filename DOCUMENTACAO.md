@@ -1,60 +1,67 @@
-# Documentação do Projeto: ÔnibusAgora 🚌
+# DOCUMENTAÇÃO
 
-Esta documentação foi elaborada para apresentação acadêmica do projeto ÔnibusAgora, detalhando sua motivação, arquitetura técnica e funcionalidades implementadas.
+**1. Visão Geral**
+O objetivo é criar uma aplicação web fullstack focada no rastreamento colaborativo de ônibus em tempo real. O foco principal é resolver a imprevisibilidade do transporte público através de *crowdsourcing* (colaboração coletiva), permitindo que os passageiros a bordo compartilhem sua localização em tempo real para o sistema calcular previsões de chegada (ETA) precisas para outros usuários nos abrigos/pontos.
 
----
+**2. Arquitetura e Stack Tecnológica**
+Frontend (Hospedagem: Netlify)
+Framework: React.js construído via Vite (pela velocidade de build e integração contínua).
+Estilização: Tailwind CSS (para uma UI responsiva e mobile-first).
+Mapas e Interatividade: React-Leaflet consumindo tilesheets do OpenStreetMap.
+Ícones: Lucide React.
+Gerenciamento de Estado: React Hooks nativos (useState e useEffect).
+Backend (Hospedagem: Render)
+Linguagem: Node.js com Express.
+Autenticação: Supabase Auth (pronto para expansão de perfis no futuro).
+Integrações: Geolocation API do HTML5 nativa dos navegadores.
+Algoritmo: Sistema interno matemático usando a Fórmula de Haversine (para cálculos de distâncias esféricas).
+Banco de Dados (Hospedagem: Supabase)
+Tipo: PostgreSQL.
+Real-time: Alimentado através de requisições HTTP REST, arquiteturado estruturalmente para aderir aos WebSockets do Supabase se o tráfego escalar.
 
-## 1. O Problema e a Motivação
-O transporte público urbano frequentemente sofre com a falta de previsibilidade. Aplicativos oficiais de rastreamento muitas vezes possuem lacunas de sinalização (GPS falho ou ausente nos veículos). 
-A motivação do **ÔnibusAgora** é resolver esse problema através de *Crowdsourcing* (colaboração coletiva). Os próprios passageiros que já estão a bordo do ônibus compartilham a sua viagem em tempo real, alimentando um mapa colaborativo que calcula a previsão de chegada para os usuários que ainda estão nos pontos de ônibus.
+**3. Modelagem de Dados (Banco de Dados)**
+Tabela: bus_lines (Linhas de Ônibus)
+id: uuid (PK)
+line_number: string (ex: '8000-10' ou '302')
+name: string (ex: 'Terminal Lapa - Praça Ramos')
+created_at: timestamp
 
----
+Tabela: stops (Pontos/Abrigos de Ônibus)
+id: uuid (PK)
+name: string (ex: 'Ponto Praça da República')
+latitude: double precision (float)
+longitude: double precision (float)
+created_at: timestamp
 
-## 2. Visão Geral do Sistema (Arquitetura)
-O projeto foi desenvolvido garantindo separação de responsabilidades (Frontend e Backend) utilizando ferramentas modernas do mercado de desenvolvimento web.
+Tabela: reports (Tracking/Reporte de Passageiros)
+id: uuid (PK)
+user_id: text (Gerado ou vinculado ao Auth)
+line_id: uuid (FK - referenciando a tabela bus_lines)
+stop_id: uuid (FK - Opcional, último ponto alcançado)
+latitude: double precision (float)
+longitude: double precision (float)
+timestamp: timestamp (hora em que as coordenadas foram capturadas)
 
-**Stack Tecnológico Básico:**
-* **Frontend:** React.js, Vite (bundler), Tailwind CSS (estilização), e React-Leaflet (mapas interativos).
-* **Backend:** Node.js com Express.js (criação de API RESTful).
-* **Banco de Dados:** Supabase (PostgreSQL), atuando tanto como armazenamento relacional quanto para provedor de backend-as-a-service.
+**4. Funcionalidades Detalhadas**
+**4.1. Visualização e Mapa Interativo (Home Dashboard)**
+O usuário ao entrar pode identificar de imediato através de marcadores todos os pontos catalogados. O mapa centraliza automaticamente na região do usuário se permitido.
+Ao clicar sobre qualquer parada, uma barra vertical exibe dinamicamente todas as medições ativas para aquele ponto.
 
-A arquitetura funciona no modelo **Client-Server**:
-1. O FrontEnd requisita dados ao BackEnd (pontos, linhas, ou previsão de chegada).
-2. O Backend se comunica com o banco de dados (Supabase) via chaves seguras (Service Role).
-3. O Backend processa o tempo estimado (ETA) e devolve a informação formatada em JSON ao Client.
+**4.2. Sistema Colaborativo de Reportes (Crowdsourcing)**
+**Fluxo de Tracking:**
+O passageiro dentro do ônibus acessa o botão principal "Reportar Ônibus".
+Escolhe a linha/frota da qual faz parte em um dropdown simplificado.
+O cliente web obtém as coordenadas cruas do hardware (Celular/GPS) e injeta no Backend.
+Como confirmação visual e de UX, a tela fornece sucesso e encorajamento no rastreio colaborativo.
 
----
+**4.3. Motor de Previsão de Chegada (ETA Algorítmico)**
+**Cálculo e Serviço Interno:**
+Ao invés de depender de hardware governamental, o backend cruza os `reports` de até segundos atrás, referenciados pelas linhas vinculadas ao `stop_id`.
+**Indicadores Matemáticos:** Usando Haversine, ele converte a distância linear da Terra do 'reporte em movimento' e o 'local de parada fixa' em um número (Kilômetros). Dividindo por uma velocidade média parametrizada de vias urbanas, converte em (Minutos Reais).
+**Ordenação:** Exibe para os passageiros em ordem crescente de chegada para tomada rápida de decisões.
 
-## 3. Funcionalidades Desenvolvidas
-
-### A. Mapa Interativo (Home)
-- Utilização da biblioteca de mapas *OpenStreetMap* renderizados via *Leaflet*.
-- **Como funciona:** O sistema busca automaticamente do Backend as coordenadas (Latitude/Longitude) dos pontos de ônibus cadastrados e os exibe. Ao clicar em um ponto, a aplicação consulta a previsão de chegada.
-
-### B. Reporte de Viagens Colaborativo
-- Formulário intuitivo acessado via botão de "Reportar Ônibus".
-- **Como funciona:** O usuário seleciona a linha em que está. A aplicação utiliza a `Geolocation API` nativa do navegador para extrair as coordenadas (Lat/Lng) exatas do celular do passageiro.
-- Essa localização é enviada ao Backend via solicitação HTTP POST (`/api/reports`).
-
-### C. Algoritmo de Previsão de Chegada (ETA)
-- O cálculo do tempo estimado não é "mágico", mas baseia-se em geometria esférica e velocidade média.
-- **Como funciona:** O Backend recebe a requisição com o ID de um ponto de ônibus. Ele busca no Supabase onde estão os últimos usuários que reportaram estar a bordo das linhas daquele ponto. Usando a **Fórmula de Haversine** (cálculo de distância em linha reta entre dois pontos na Terra), o servidor cruza a distância restante com uma velocidade média configurada internamente (ex: 25 km/h), entregando uma projeção em minutos para o frontend.
-
----
-
-## 4. Estrutura de Banco de Dados (Entidade-Relacionamento)
-Foram construídas três entidades principais no Supabase relacional:
-
-1. **`bus_lines`**: Representa as frotas e linhas. (Ex: 8000-10 - Terminal Lapa)
-2. **`stops`**: Representa a geolocalização fixa dos abrigos/pontos de embarque.
-3. **`reports`**: Uma tabela dependente que registra logs em tempo-real. Grava qual usuário reportou a posição, em qual linha de ônibus ele indicou estar, e quais suas coordenadas de GPS exatas naquele segundo.
-
----
-
-## 5. Escalabilidade e Próximos Passos
-O aplicativo foi estruturado visando escalabilidade em Produção:
-- **Separação de Camadas:** Como API (express) e Tela (React) são separadas, é possível construir no futuro um aplicativo iOS/Android (react-native, por exemplo) reaproveitando o exato mesmo backend e banco de dados.
-- **Integração Realtime (Opcional Futuro):** Pela infraestrutura do Supabase ser moderna, as requisições hoje funcionam baseadas em HTTP Polling. Uma evolução orgânica seria transformar a consulta em chamadas *Websocket* nativas do Supabase, piscando o mapa ou relógio em tempo real na tela do usuário.
-
----
-**Fim do Documento de Apresentação.**
+**4.4. Interface e Experiência do Usuário (UI/UX)**
+**Navegação e Estrutura:**
+**Mobile-First Setup:** Botões volumosos clicáveis em deslocamento, priorização tátil. Sem poluição (Painel esquerdo contínuo, Painel inferior reativo no celular).
+**Indicadores Visuais de Status:** Status de erro customizados: "Selecione um local", "Você está aqui", feedback rotativo ("Enviando...") durante cargas assíncronas do backend.
+**Design System Básico:** Foco claro no uso da cor Ândigo e Verde semântico para sucesso (Status Positivos). Cores claras e bordas suaves no Tailwind entregam um aplicativo web digno de PWA (Progressive Web App).
