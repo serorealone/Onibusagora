@@ -47,6 +47,11 @@ function deg2rad(deg) {
 
 // Routes
 app.get('/api/lines', async (req, res) => {
+  const mockLines = [
+    { id: "1", line_number: "204", name: "Expresso Centro" },
+    { id: "2", line_number: "305", name: "Interbairros" },
+    { id: "3", line_number: "402", name: "Circular Sul" }
+  ];
   try {
     if (!supabase) throw new Error("Supabase is not configured.");
     const { data, error } = await supabase
@@ -55,13 +60,22 @@ app.get('/api/lines', async (req, res) => {
       .order('line_number', { ascending: true });
       
     if (error) throw error;
+    
+    if (!data || data.length === 0) return res.json(mockLines);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.warn("Returning mock lines due to API/DB error:", err.message);
+    res.json(mockLines);
   }
 });
 
 app.get('/api/stops', async (req, res) => {
+  const mockStops = [
+    { id: 1, name: "Ponto Capitão Salomão", latitude: -21.1760, longitude: -47.8100 },
+    { id: 2, name: "Ponto Moura Lacerda", latitude: -21.1740, longitude: -47.8130 },
+    { id: 3, name: "Ponto Amazonas", latitude: -21.1780, longitude: -47.8080 },
+    { id: 4, name: "Ponto Silveira Martins", latitude: -21.1720, longitude: -47.8150 }
+  ];
   try {
     if (!supabase) throw new Error("Supabase is not configured.");
     const { search } = req.query;
@@ -73,9 +87,12 @@ app.get('/api/stops', async (req, res) => {
     
     const { data, error } = await query;
     if (error) throw error;
+    
+    if (!data || data.length === 0) return res.json(mockStops);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.warn("Returning mock stops due to API/DB error:", err.message);
+    res.json(mockStops);
   }
 });
 

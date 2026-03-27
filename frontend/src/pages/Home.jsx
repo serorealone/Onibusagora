@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase } from '../supabaseClient';
 import L from 'leaflet';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 
 // Fix Leaflet icons issue
 delete L.Icon.Default.prototype._getIconUrl;
